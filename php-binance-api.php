@@ -2025,12 +2025,14 @@ class API
      * @return null
      * @throws \Exception
      */
-    public function userData(&$balance_callback, &$execution_callback = false)
+    public function userData(&$balance_callback, &$execution_callback = false, &$ws_close_callback = false)
     {
         $response = $this->httpRequest("v1/userDataStream", "POST", []);
-        $listenKey = $this->options['listenKey'] = $response['listenKey'];
+        $listenKey = $response['listenKey'];
+//        $this->options['listenKey'] = $response['listenKey'];
         $this->info['balanceCallback'] = $balance_callback;
         $this->info['executionCallback'] = $execution_callback;
+        $this->info['ws_close_callback'] = $ws_close_callback;
 
         $this->subscriptions['@userdata'] = true;
 
@@ -2058,10 +2060,12 @@ class API
             $ws->on('close', function ($code = null, $reason = null) {
                 // WPCS: XSS OK.
                 echo "userData: WebSocket Connection closed! ({$code} - {$reason})" . PHP_EOL;
+                $this->info['ws_close_callback']();
             });
         }, function ($e) {
             // WPCS: XSS OK.
             echo "userData: Could not connect: {$e->getMessage()}" . PHP_EOL;
+            $this->info['ws_close_callback']();
         });
         // @codeCoverageIgnoreEnd
     }
